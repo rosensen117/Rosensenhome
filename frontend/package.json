@@ -1,0 +1,22 @@
+{
+  "name": "campus-lost-found-ui",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@lucide/vue": "latest",
+    "vue": "latest",
+    "vue-router": "latest"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.45.0",
+    "@vitejs/plugin-vue": "latest",
+    "vite": "latest",
+    "wrangler": "4.111.0"
+  }
+}
