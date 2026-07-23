@@ -4,6 +4,8 @@
 
 项目默认使用本地 H2 文件数据库，无需提前安装数据库。
 
+数据访问层使用 MyBatis，Mapper 接口位于 `auth` 包，SQL 映射文件位于 `src/main/resources/mappers`。
+
 ```powershell
 $env:JAVA_HOME='C:\Users\rosen\.jdks\ms-17.0.19'
 .\mvnw.cmd spring-boot:run
@@ -21,4 +23,4 @@ $env:JAVA_HOME='C:\Users\rosen\.jdks\ms-17.0.19'
 .\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
-前端开发服务器会把 `/api` 自动代理到本后端。线上部署时，将前端的 `VITE_API_BASE_URL` 设置为后端 HTTPS 地址（例如 `https://api.example.com/api`）。
+本地前端直接访问 `http://localhost:8080/api`。线上部署时，将前端的 `VITE_API_BASE_URL` 设置为后端 HTTPS 地址（例如 `https://api.example.com/api`）。
