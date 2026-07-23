@@ -524,6 +524,13 @@ footer { padding: 30px 0; border-top: 1px solid var(--line); background: #ebe6da
 .upload-placeholder { width: 100%; min-height: 140px; display: grid; place-items: center; align-content: center; gap: 7px; border: 1px dashed #abb5ad; color: var(--forest); background: #f4f6f2; }
 .upload-placeholder b { font-size: 11px; }
 .upload-placeholder span { color: var(--muted); font-size: 9px; }
+.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; white-space: nowrap !important; border: 0 !important; }
+.publish-image-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.publish-image-grid figure { position: relative; margin: 0; aspect-ratio: 4 / 3; overflow: hidden; border: 1px solid var(--line); background: #eef0eb; }
+.publish-image-grid img { width: 100%; height: 100%; object-fit: cover; }
+.publish-image-grid figure > button { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: grid; place-items: center; border: 0; border-radius: 50%; color: white; background: rgba(25, 34, 30, .78); }
+.publish-image-grid figcaption { position: absolute; left: 8px; bottom: 7px; padding: 3px 7px; color: white; background: rgba(25, 34, 30, .72); font: 500 10px/1.2 monospace; }
+@media (max-width: 640px) { .publish-image-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .hidden-feature-label { margin-top: 18px; }
 .route-privacy-note { margin-top: 17px; }
 .publish-route-actions { display: flex; justify-content: flex-end; gap: 10px; }

@@ -1,13 +1,17 @@
 <script setup>
-import { Check, ImagePlus, PackageCheck, PenLine, Search, ShieldCheck } from '@lucide/vue'
-import { reactive, ref } from 'vue'
+import { Check, ImagePlus, PackageCheck, PenLine, Search, ShieldCheck, X } from '@lucide/vue'
+import { onBeforeUnmount, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { uploadImage } from '../api/uploads'
 import { categories } from '../data'
 import { showToast } from '../state'
 
 const route = useRoute()
 const router = useRouter()
 const submitted = ref(false)
+const imageInput = ref(null)
+const selectedImages = ref([])
+const uploadProgress = ref('')
 const form = reactive({
   type: route.query.type === 'found' ? 'found' : 'lost',
   title: '',
@@ -18,16 +22,47 @@ const form = reactive({
   hiddenFeature: '',
 })
 
-function submit() {
+function chooseImages(event) {
+  const files = Array.from(event.target.files || [])
+  const remaining = 6 - selectedImages.value.length
+  for (const file of files.slice(0, remaining)) {
+    if (file.size > 5 * 1024 * 1024) {
+      showToast(`${file.name} 超过5MB，已跳过`)
+      continue
+    }
+    selectedImages.value.push({ file, preview: URL.createObjectURL(file) })
+  }
+  event.target.value = ''
+}
+
+function removeImage(index) {
+  URL.revokeObjectURL(selectedImages.value[index].preview)
+  selectedImages.value.splice(index, 1)
+}
+
+onBeforeUnmount(() => selectedImages.value.forEach((image) => URL.revokeObjectURL(image.preview)))
+
+async function submit() {
   if (!form.title || !form.date || !form.location || !form.description) {
     showToast('请先补全带星号的必填信息')
     return
   }
   submitted.value = true
-  window.setTimeout(() => {
+  try {
+    const uploadedImages = []
+    for (let index = 0; index < selectedImages.value.length; index += 1) {
+      uploadProgress.value = `正在上传图片 ${index + 1} / ${selectedImages.value.length}`
+      uploadedImages.push(await uploadImage(selectedImages.value[index].file))
+    }
+    console.info('已上传图片', uploadedImages)
     showToast('信息已保存为草稿')
     router.push({ path: '/hall', query: { type: form.type } })
-  }, 850)
+  } catch (exception) {
+    showToast(exception.message)
+    submitted.value = false
+  } finally {
+    uploadProgress.value = ''
+  }
 }
 </script>
 
@@ -61,12 +96,20 @@ function submit() {
 
         <section class="form-section-card">
           <div class="form-section-title"><span>03</span><div><h2>图片与隐藏特征</h2><p>隐藏特征用于判断认领人是否真正了解物品。</p></div></div>
-          <button type="button" class="upload-placeholder" @click="showToast('图片上传将在接入文件服务后启用')"><ImagePlus :size="27" /><b>点击添加物品图片</b><span>支持 JPG、PNG，单张不超过 5 MB</span></button>
+          <input ref="imageInput" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" multiple @change="chooseImages" />
+          <button v-if="selectedImages.length < 6" type="button" class="upload-placeholder" @click="imageInput.click()"><ImagePlus :size="27" /><b>点击添加物品图片</b><span>支持 JPG、PNG、WebP，单张不超过 5 MB，最多 6 张</span></button>
+          <div v-if="selectedImages.length" class="publish-image-grid">
+            <figure v-for="(image, index) in selectedImages" :key="image.preview">
+              <img :src="image.preview" :alt="`待上传物品图片 ${index + 1}`" />
+              <button type="button" aria-label="移除图片" @click="removeImage(index)"><X :size="15" /></button>
+              <figcaption>{{ index + 1 }} / {{ selectedImages.length }}</figcaption>
+            </figure>
+          </div>
           <label class="hidden-feature-label">隐藏核验特征<textarea v-model="form.hiddenFeature" rows="3" placeholder="例如：卡套内部贴纸、钥匙数字牌、设备序列号末四位。此内容不会公开显示。"></textarea></label>
           <div class="privacy-note route-privacy-note"><ShieldCheck :size="19" /><p><b>隐私保护</b><br />联系方式默认隐藏；认领证明、隐藏特征只对相关双方和授权管理员可见。</p></div>
         </section>
 
-        <div class="publish-route-actions"><button type="button" class="draft-button" @click="showToast('草稿已暂存在当前设备')">保存草稿</button><button class="submit-publish" :disabled="submitted"><Check v-if="submitted" :size="18" /><PenLine v-else :size="18" />{{ submitted ? '正在保存…' : '保存并预览' }}</button></div>
+        <div class="publish-route-actions"><button type="button" class="draft-button" @click="showToast('草稿已暂存在当前设备')">保存草稿</button><button class="submit-publish" :disabled="submitted"><Check v-if="submitted" :size="18" /><PenLine v-else :size="18" />{{ uploadProgress || (submitted ? '正在保存…' : '保存并预览') }}</button></div>
       </form>
     </section>
   </div>

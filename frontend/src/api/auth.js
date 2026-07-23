@@ -1,5 +1,5 @@
 const DEFAULT_API_BASE = import.meta.env.DEV ? 'http://localhost:8080/api' : '/api'
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE).replace(/\/$/, '')
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE).replace(/\/$/, '')
 const SESSION_KEY = 'shiguang-auth'
 
 export function readAuthSession() {

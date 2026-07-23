@@ -15,6 +15,10 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 30MB
 
 server:
   port: ${PORT:8080}
@@ -27,6 +31,14 @@ app:
     password: ${ADMIN_PASSWORD:Admin@123456}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,https://shiguang-campus-lost-found.ls1994609633.chatgpt.site}
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:http://localhost:9100}
+    region: ${STORAGE_REGION:us-east-1}
+    access-key: ${STORAGE_ACCESS_KEY:minioadmin}
+    secret-key: ${STORAGE_SECRET_KEY:minioadmin123}
+    bucket: ${STORAGE_BUCKET:lost-found-images}
+    public-url: ${STORAGE_PUBLIC_URL:http://localhost:8080/api/files/public}
+    path-style: ${STORAGE_PATH_STYLE:true}
 
 management:
   endpoints:

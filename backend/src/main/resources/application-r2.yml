@@ -1,0 +1,9 @@
+app:
+  storage:
+    endpoint: ${R2_ENDPOINT}
+    region: ${R2_REGION:auto}
+    access-key: ${R2_ACCESS_KEY_ID}
+    secret-key: ${R2_SECRET_ACCESS_KEY}
+    bucket: ${R2_BUCKET:lost-found-images}
+    public-url: ${R2_PUBLIC_URL}
+    path-style: true

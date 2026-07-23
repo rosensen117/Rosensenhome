@@ -11,7 +11,7 @@ const router = createRouter({
     { path: '/', name: 'home', component: HomeView, meta: { title: '拾光 · 校园失物招领' } },
     { path: '/hall', name: 'hall', component: () => import('./views/HallView.vue'), meta: { title: '寻物大厅 · 拾光' } },
     { path: '/items/:id', name: 'item-detail', component: () => import('./views/DetailView.vue'), meta: { title: '物品详情 · 拾光' } },
-    { path: '/publish', name: 'publish', component: () => import('./views/PublishView.vue'), meta: { title: '发布信息 · 拾光' } },
+    { path: '/publish', name: 'publish', component: () => import('./views/PublishView.vue'), meta: { title: '发布信息 · 拾光', requiresAuth: true } },
     { path: '/clues', name: 'clues', component: () => import('./views/CluesView.vue'), meta: { title: '线索动态 · 拾光' } },
     { path: '/guide', name: 'guide', component: () => import('./views/GuideView.vue'), meta: { title: '认领指南 · 拾光' } },
     { path: '/profile', name: 'profile', component: () => import('./views/ProfileView.vue'), meta: { title: '个人中心 · 拾光', requiresAuth: true } },

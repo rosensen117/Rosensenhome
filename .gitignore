@@ -14,6 +14,7 @@ frontend/.env.*
 
 backend/target/
 backend/data/
+backend/minio-data/
 backend/.mvn/wrapper/maven-wrapper.jar
 backend/.apt_generated/
 backend/.classpath
