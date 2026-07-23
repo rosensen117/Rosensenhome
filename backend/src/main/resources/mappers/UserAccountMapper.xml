@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shiguang.lostfound.auth.UserAccountMapper">
+    <resultMap id="userMap" type="UserAccount">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="studentId" column="student_id"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="role" column="role" javaType="com.shiguang.lostfound.auth.Role"/>
+        <result property="verified" column="verified"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="userColumns">
+        id, name, student_id, phone, email, password_hash, role, verified, created_at
+    </sql>
+
+    <select id="findByStudentId" resultMap="userMap">
+        SELECT <include refid="userColumns"/> FROM users WHERE student_id = #{studentId}
+    </select>
+
+    <select id="findByAccount" resultMap="userMap">
+        SELECT <include refid="userColumns"/> FROM users
+        WHERE student_id = #{account} OR phone = #{account}
+        LIMIT 1
+    </select>
+
+    <select id="countByStudentId" resultType="int">
+        SELECT COUNT(*) FROM users WHERE student_id = #{studentId}
+    </select>
+
+    <select id="countByPhone" resultType="int">
+        SELECT COUNT(*) FROM users WHERE phone = #{phone}
+    </select>
+
+    <insert id="insert" parameterType="UserAccount" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (name, student_id, phone, email, password_hash, role, verified, created_at)
+        VALUES (#{name}, #{studentId}, #{phone}, #{email}, #{passwordHash}, #{role}, #{verified}, #{createdAt})
+    </insert>
+</mapper>

@@ -6,10 +6,11 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    open-in-view: false
+  sql:
+    init:
+      mode: always
+      platform: h2
+      schema-locations: classpath:schema-h2.sql
   h2:
     console:
       enabled: true
@@ -32,3 +33,9 @@ management:
     web:
       exposure:
         include: health
+
+mybatis:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.shiguang.lostfound.auth
+  configuration:
+    map-underscore-to-camel-case: true
