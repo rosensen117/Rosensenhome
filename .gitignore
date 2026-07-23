@@ -4,6 +4,7 @@
 .codex/
 
 *.log
+~$*.docx
 
 frontend/node_modules/
 frontend/dist/
