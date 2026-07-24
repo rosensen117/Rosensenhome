@@ -6,6 +6,10 @@ import com.shiguang.lostfound.auth.UserAccountMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,6 +27,10 @@ public class ItemService {
     }
 
     @Transactional
+    @Caching(
+            evict = @CacheEvict(cacheNames = "itemList", allEntries = true),
+            put = @CachePut(cacheNames = "itemDetail", key = "#result.id")
+    )
     public ItemResponse create(String studentId, CreateItemRequest request) {
         UserAccount user = userMapper.findByStudentId(studentId);
         if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "登录状态已失效，请重新登录");
@@ -53,6 +61,7 @@ public class ItemService {
         return findById(post.getId());
     }
 
+    @Cacheable(cacheNames = "itemList", key = "'all'", sync = true)
     public List<ItemResponse> findAll() {
         return itemMapper.findPublishedPosts().stream().map(this::toResponse).toList();
     }
@@ -82,6 +91,7 @@ public class ItemService {
         itemMapper.deleteFavorite(user.getId(), itemId);
     }
 
+    @Cacheable(cacheNames = "itemDetail", key = "#id", sync = true)
     public ItemResponse findById(Long id) {
         ItemPost post = itemMapper.findPostById(id);
         if (post == null) throw new ApiException(HttpStatus.NOT_FOUND, "没有找到这条失物信息");

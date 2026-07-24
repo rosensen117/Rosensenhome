@@ -1,4 +1,19 @@
 services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: lost-found-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   frontend:
     build:
       context: ./frontend
@@ -8,3 +23,6 @@ services:
       - "host.docker.internal:host-gateway"
     ports:
       - "8088:80"
+
+volumes:
+  redis-data:

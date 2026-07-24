@@ -6,6 +6,7 @@ import jakarta.validation.constraints.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.io.Serializable;
 
 public final class ItemDtos {
     private ItemDtos() {}
@@ -40,7 +41,7 @@ public final class ItemDtos {
             String publisher,
             boolean publisherVerified,
             List<ImageResponse> images
-    ) {}
+    ) implements Serializable {}
 
-    public record ImageResponse(String key, String url, int sortOrder) {}
+    public record ImageResponse(String key, String url, int sortOrder) implements Serializable {}
 }
