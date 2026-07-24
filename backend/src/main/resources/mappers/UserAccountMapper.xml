@@ -10,11 +10,13 @@
         <result property="passwordHash" column="password_hash"/>
         <result property="role" column="role" javaType="com.shiguang.lostfound.auth.Role"/>
         <result property="verified" column="verified"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="avatarObjectKey" column="avatar_object_key"/>
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
     <sql id="userColumns">
-        id, name, student_id, phone, email, password_hash, role, verified, created_at
+        id, name, student_id, phone, email, password_hash, role, verified, avatar_url, avatar_object_key, created_at
     </sql>
 
     <select id="findByStudentId" resultMap="userMap">
@@ -39,4 +41,8 @@
         INSERT INTO users (name, student_id, phone, email, password_hash, role, verified, created_at)
         VALUES (#{name}, #{studentId}, #{phone}, #{email}, #{passwordHash}, #{role}, #{verified}, #{createdAt})
     </insert>
+
+    <update id="updateAvatar">
+        UPDATE users SET avatar_url=#{avatarUrl}, avatar_object_key=#{avatarObjectKey} WHERE id=#{userId}
+    </update>
 </mapper>

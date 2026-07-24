@@ -3,6 +3,8 @@ package com.shiguang.lostfound;
 import com.shiguang.lostfound.auth.AuthDtos.RegisterRequest;
 import com.shiguang.lostfound.auth.AuthService;
 import com.shiguang.lostfound.item.ItemDtos.CreateItemRequest;
+import com.shiguang.lostfound.item.DraftDtos.SaveDraftRequest;
+import com.shiguang.lostfound.item.DraftService;
 import com.shiguang.lostfound.item.ItemService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
@@ -19,10 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ItemServiceTests {
     @Autowired AuthService authService;
     @Autowired ItemService itemService;
+    @Autowired DraftService draftService;
     @Autowired JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void removeTestRecords() {
+        jdbcTemplate.update("DELETE FROM item_drafts WHERE user_id IN (SELECT id FROM users WHERE name = ?)", "发布测试用户");
         jdbcTemplate.update("DELETE FROM item_favorites WHERE item_id IN (SELECT id FROM item_posts WHERE title = ?)", "测试校园卡");
         jdbcTemplate.update("DELETE FROM item_images WHERE item_id IN (SELECT id FROM item_posts WHERE title = ?)", "测试校园卡");
         jdbcTemplate.update("DELETE FROM item_posts WHERE title = ?", "测试校园卡");
@@ -51,5 +55,13 @@ class ItemServiceTests {
         assertThat(itemService.findFavorites(studentId)).extracting("id").containsExactly(created.id());
         itemService.removeFavorite(studentId, created.id());
         assertThat(itemService.findFavorites(studentId)).isEmpty();
+
+        var draft = draftService.save(studentId, null, new SaveDraftRequest(
+                "found", "", "随身物品", null, "食堂", "", null, List.of()));
+        assertThat(draft.id()).isNotNull();
+        assertThat(draft.eventDate()).isNull();
+        assertThat(draftService.findAll(studentId)).extracting("id").contains(draft.id());
+        draftService.delete(studentId, draft.id());
+        assertThat(draftService.findAll(studentId)).isEmpty();
     }
 }

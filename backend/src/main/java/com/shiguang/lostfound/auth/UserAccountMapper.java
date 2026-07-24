@@ -10,4 +10,5 @@ public interface UserAccountMapper {
     int countByStudentId(@Param("studentId") String studentId);
     int countByPhone(@Param("phone") String phone);
     int insert(UserAccount user);
+    int updateAvatar(@Param("userId") Long userId, @Param("avatarUrl") String avatarUrl, @Param("avatarObjectKey") String avatarObjectKey);
 }

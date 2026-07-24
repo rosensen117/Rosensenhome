@@ -26,6 +26,14 @@ public class AuthController {
     @GetMapping("/me")
     public UserResponse me(Authentication authentication) { return authService.currentUser(authentication.getName()); }
 
+    @PutMapping("/me/avatar")
+    public UserResponse updateAvatar(Authentication authentication, @Valid @RequestBody AvatarRequest request) {
+        return authService.updateAvatar(authentication.getName(), request);
+    }
+
+    @DeleteMapping("/me/avatar")
+    public UserResponse resetAvatar(Authentication authentication) { return authService.resetAvatar(authentication.getName()); }
+
     @PostMapping("/logout")
     public MessageResponse logout(@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
         String token = authorization != null && authorization.startsWith("Bearer ") ? authorization.substring(7) : null;

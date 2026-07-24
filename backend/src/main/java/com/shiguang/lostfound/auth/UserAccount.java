@@ -11,6 +11,8 @@ public class UserAccount {
     private String passwordHash;
     private Role role = Role.USER;
     private boolean verified = false;
+    private String avatarUrl;
+    private String avatarObjectKey;
     private Instant createdAt = Instant.now();
 
     public UserAccount() {}
@@ -33,6 +35,8 @@ public class UserAccount {
     public Role getRole() { return role; }
     public boolean isVerified() { return verified; }
     public Instant getCreatedAt() { return createdAt; }
+    public String getAvatarUrl() { return avatarUrl; }
+    public String getAvatarObjectKey() { return avatarObjectKey; }
     public void setId(Long id) { this.id = id; }
     public void setName(String name) { this.name = name; }
     public void setStudentId(String studentId) { this.studentId = studentId; }
@@ -42,4 +46,6 @@ public class UserAccount {
     public void setRole(Role role) { this.role = role; }
     public void setVerified(boolean verified) { this.verified = verified; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public void setAvatarObjectKey(String avatarObjectKey) { this.avatarObjectKey = avatarObjectKey; }
 }

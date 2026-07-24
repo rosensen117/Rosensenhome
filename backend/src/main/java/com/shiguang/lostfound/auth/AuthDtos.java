@@ -18,11 +18,16 @@ public final class AuthDtos {
             @NotBlank(message = "密码不能为空") String password
     ) {}
 
-    public record UserResponse(Long id, String name, String studentId, String phone, String email, String role, boolean verified) {
+    public record UserResponse(Long id, String name, String studentId, String phone, String email, String role, boolean verified, String avatarUrl) {
         static UserResponse from(UserAccount user) {
-            return new UserResponse(user.getId(), user.getName(), user.getStudentId(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isVerified());
+            return new UserResponse(user.getId(), user.getName(), user.getStudentId(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isVerified(), user.getAvatarUrl());
         }
     }
+
+    public record AvatarRequest(
+            @NotBlank(message = "头像对象标识不能为空") @Size(max = 300) String key,
+            @NotBlank(message = "头像地址不能为空") @Size(max = 600) String url
+    ) {}
 
     public record AuthResponse(String token, long expiresIn, UserResponse user) {}
     public record MessageResponse(String message) {}

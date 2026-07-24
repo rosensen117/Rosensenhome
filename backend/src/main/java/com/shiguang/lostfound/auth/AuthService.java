@@ -60,6 +60,24 @@ public class AuthService {
     }
 
     @Transactional
+    public UserResponse updateAvatar(String account, AvatarRequest request) {
+        UserAccount user = requireCurrentUser(account);
+        users.updateAvatar(user.getId(), request.url(), request.key());
+        user.setAvatarUrl(request.url());
+        user.setAvatarObjectKey(request.key());
+        return UserResponse.from(user);
+    }
+
+    @Transactional
+    public UserResponse resetAvatar(String account) {
+        UserAccount user = requireCurrentUser(account);
+        users.updateAvatar(user.getId(), null, null);
+        user.setAvatarUrl(null);
+        user.setAvatarObjectKey(null);
+        return UserResponse.from(user);
+    }
+
+    @Transactional
     public void logout(String rawToken) {
         if (rawToken != null && !rawToken.isBlank()) tokens.deleteByTokenHash(hash(rawToken));
     }
@@ -81,6 +99,12 @@ public class AuthService {
 
     private ApiException invalidCredentials(boolean adminOnly) {
         return new ApiException(HttpStatus.UNAUTHORIZED, adminOnly ? "管理员账号或密码错误" : "账号或密码错误");
+    }
+
+    private UserAccount requireCurrentUser(String account) {
+        UserAccount user = users.findByStudentId(account);
+        if (user == null) throw new ApiException(HttpStatus.UNAUTHORIZED, "登录状态已失效");
+        return user;
     }
 
     public static String hash(String value) {

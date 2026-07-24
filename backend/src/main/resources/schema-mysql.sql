@@ -7,8 +7,13 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(100) NOT NULL,
     role VARCHAR(10) NOT NULL,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
+    avatar_url VARCHAR(600),
+    avatar_object_key VARCHAR(300),
     created_at TIMESTAMP(6) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(600);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_object_key VARCHAR(300);
 
 CREATE TABLE IF NOT EXISTS auth_tokens (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -54,4 +59,21 @@ CREATE TABLE IF NOT EXISTS item_favorites (
     INDEX idx_item_favorites_item_id (item_id),
     CONSTRAINT fk_item_favorites_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_item_favorites_item FOREIGN KEY (item_id) REFERENCES item_posts(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS item_drafts (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    type VARCHAR(10) NOT NULL,
+    title VARCHAR(30),
+    category VARCHAR(30),
+    event_date DATE,
+    location VARCHAR(120),
+    description VARCHAR(300),
+    hidden_feature VARCHAR(300),
+    images_json TEXT,
+    created_at TIMESTAMP(6) NOT NULL,
+    updated_at TIMESTAMP(6) NOT NULL,
+    INDEX idx_item_drafts_user_id (user_id),
+    CONSTRAINT fk_item_drafts_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

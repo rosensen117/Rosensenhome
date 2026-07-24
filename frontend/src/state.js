@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { readAuthSession, removeAuthSession, saveAuthSession } from './api/auth'
+import { readAuthSession, removeAuthSession, replaceSessionUser, saveAuthSession } from './api/auth'
 import { addFavorite, fetchFavorites, removeFavorite } from './api/items'
 
 const initialSession = readAuthSession()
@@ -24,6 +24,11 @@ export function clearAuthSession() {
   isLoggedIn.value = false
   isAdminLoggedIn.value = false
   favorites.value = new Set()
+}
+
+export function syncCurrentUser(user) {
+  currentUser.value = user
+  replaceSessionUser(user)
 }
 
 let toastTimer

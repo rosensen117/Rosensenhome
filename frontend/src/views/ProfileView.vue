@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   BellRing,
   Building2,
+  Camera,
   Check,
   ChevronRight,
   Heart,
@@ -12,18 +13,23 @@ import {
   PackageSearch,
   Phone,
   Save,
+  RotateCcw,
   ShieldCheck,
   UserRound,
 } from '@lucide/vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { logoutAccount } from '../api/auth'
-import { fetchMyItems } from '../api/items'
-import { clearAuthSession, currentUser, loadFavorites, showToast } from '../state'
+import { logoutAccount, resetAvatar, updateAvatar } from '../api/auth'
+import { fetchDrafts, fetchMyItems } from '../api/items'
+import { uploadImage } from '../api/uploads'
+import { clearAuthSession, currentUser, loadFavorites, showToast, syncCurrentUser } from '../state'
 
 const router = useRouter()
 const activeTab = ref('profile')
 const editing = ref(false)
+const avatarInput = ref(null)
+const avatarUploading = ref(false)
+const avatarUrl = computed(() => currentUser.value?.avatarUrl || '/images/default-avatar.png')
 const profile = reactive({
   name: currentUser.value?.name || '校园用户',
   studentId: currentUser.value?.studentId || '',
@@ -70,7 +76,14 @@ async function loadMyPosts() {
   postsLoading.value = true
   postsError.value = ''
   try {
-    myPosts.value = (await fetchMyItems()).map(normalizePost)
+    const [published, drafts] = await Promise.all([fetchMyItems(), fetchDrafts()])
+    const draftRecords = drafts.map((draft) => ({
+      ...normalizePost({ ...draft, title: draft.title || '未命名草稿', location: draft.location || '尚未填写地点', status: 'DRAFT', createdAt: draft.updatedAt }),
+      rowKey: `draft-${draft.id}`,
+      isDraft: true,
+      statusText: '草稿',
+    }))
+    myPosts.value = [...draftRecords, ...published.map((item) => ({ ...normalizePost(item), rowKey: `post-${item.id}` }))]
   } catch (error) {
     postsError.value = error.message || '我的发布加载失败，请稍后重试'
   } finally {
@@ -91,6 +104,37 @@ async function loadFavoriteItems() {
 }
 
 onMounted(() => Promise.all([loadMyPosts(), loadFavoriteItems()]))
+
+async function chooseAvatar(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return showToast('头像仅支持 JPG、PNG 或 WebP')
+  if (file.size > 5 * 1024 * 1024) return showToast('头像不能超过 5MB')
+  avatarUploading.value = true
+  try {
+    const uploaded = await uploadImage(file)
+    syncCurrentUser(await updateAvatar({ key: uploaded.key, url: uploaded.url }))
+    showToast('头像已更新')
+  } catch (error) {
+    showToast(error.message || '头像更新失败，请稍后重试')
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
+async function restoreDefaultAvatar() {
+  if (avatarUploading.value) return
+  avatarUploading.value = true
+  try {
+    syncCurrentUser(await resetAvatar())
+    showToast('已恢复默认头像')
+  } catch (error) {
+    showToast(error.message || '恢复默认头像失败')
+  } finally {
+    avatarUploading.value = false
+  }
+}
 
 function saveProfile() {
   editing.value = false
@@ -114,7 +158,13 @@ async function logout() {
     <section class="profile-hero">
       <div class="section-wrap profile-hero-inner">
         <div class="profile-identity">
-          <div class="profile-avatar">林<span></span></div>
+          <div class="profile-avatar-wrap">
+            <button type="button" class="profile-avatar" :disabled="avatarUploading" :aria-label="avatarUploading ? '正在上传头像' : '更换头像'" @click="avatarInput.click()">
+              <img :src="avatarUrl" alt="个人头像" /><span></span><i><Camera :size="15" /></i>
+            </button>
+            <input ref="avatarInput" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" @change="chooseAvatar" />
+            <button v-if="currentUser?.avatarUrl" type="button" class="avatar-reset" :disabled="avatarUploading" @click="restoreDefaultAvatar"><RotateCcw :size="12" />默认</button>
+          </div>
           <div>
             <span class="section-kicker">STUDENT PROFILE</span>
             <h1>{{ profile.name }}</h1>
@@ -187,11 +237,11 @@ async function logout() {
             <div v-if="postsLoading" class="profile-empty profile-post-state"><PackageSearch :size="34" /><h3>正在加载发布记录</h3></div>
             <div v-else-if="postsError" class="profile-empty profile-post-state"><PackageSearch :size="34" /><h3>{{ postsError }}</h3><button type="button" @click="loadMyPosts">重新加载</button></div>
             <div v-else-if="myPosts.length" class="profile-record-list">
-              <article v-for="item in myPosts" :key="item.id">
+              <article v-for="item in myPosts" :key="item.rowKey">
                 <div class="record-icon" :class="item.tone"><img v-if="item.imageUrl" class="record-photo" :src="item.imageUrl" :alt="item.title" /><component v-else :is="item.icon" :size="28" /></div>
                 <div class="record-copy"><span>{{ item.category }} · {{ item.time }}</span><h3>{{ item.title }}</h3><p>{{ item.location }} · {{ item.type === 'lost' ? '寻物启事' : '招领启事' }}</p></div>
-                <b :class="{ solved: item.solved }">{{ item.statusText }}</b>
-                <RouterLink :to="`/items/${item.id}`">查看</RouterLink>
+                <b :class="{ solved: item.solved, draft: item.isDraft }">{{ item.statusText }}</b>
+                <RouterLink :to="item.isDraft ? `/publish?draftId=${item.id}` : `/items/${item.id}`">{{ item.isDraft ? '继续编辑' : '查看' }}</RouterLink>
               </article>
             </div>
             <div v-else class="profile-empty profile-post-state"><PackageSearch :size="34" /><h3>还没有发布信息</h3><p>发布后，你可以在这里查看和管理进度。</p><RouterLink to="/publish">去发布第一条信息</RouterLink></div>

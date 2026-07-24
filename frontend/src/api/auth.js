@@ -25,6 +25,17 @@ export function removeAuthSession() {
   sessionStorage.removeItem(SESSION_KEY)
 }
 
+export function replaceSessionUser(user) {
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      const value = storage.getItem(SESSION_KEY)
+      if (value) storage.setItem(SESSION_KEY, JSON.stringify({ ...JSON.parse(value), user }))
+    } catch {
+      storage.removeItem(SESSION_KEY)
+    }
+  }
+}
+
 async function request(path, options = {}) {
   const session = readAuthSession()
   const response = await fetch(`${API_BASE}${path}`, {
@@ -45,3 +56,5 @@ export const loginAccount = (account, password) => request('/auth/login', { meth
 export const loginAdmin = (account, password) => request('/auth/admin/login', { method: 'POST', body: JSON.stringify({ account, password }) })
 export const fetchCurrentUser = () => request('/auth/me')
 export const logoutAccount = () => request('/auth/logout', { method: 'POST' })
+export const updateAvatar = (payload) => request('/auth/me/avatar', { method: 'PUT', body: JSON.stringify(payload) })
+export const resetAvatar = () => request('/auth/me/avatar', { method: 'DELETE' })

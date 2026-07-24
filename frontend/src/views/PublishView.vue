@@ -1,9 +1,9 @@
 <script setup>
 import { Check, ImagePlus, PackageCheck, PenLine, Search, ShieldCheck, X } from '@lucide/vue'
-import { onBeforeUnmount, reactive, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { uploadImage } from '../api/uploads'
-import { createItem } from '../api/items'
+import { createDraft, createItem, deleteDraft, fetchDraft, updateDraft } from '../api/items'
 import { categories } from '../data'
 import { showToast } from '../state'
 
@@ -13,6 +13,8 @@ const submitted = ref(false)
 const imageInput = ref(null)
 const selectedImages = ref([])
 const uploadProgress = ref('')
+const savingDraft = ref(false)
+const draftId = ref(route.query.draftId ? Number(route.query.draftId) : null)
 const form = reactive({
   type: route.query.type === 'found' ? 'found' : 'lost',
   title: '',
@@ -43,6 +45,66 @@ function removeImage(index) {
 
 onBeforeUnmount(() => selectedImages.value.forEach((image) => URL.revokeObjectURL(image.preview)))
 
+onMounted(async () => {
+  if (!draftId.value) return
+  try {
+    const draft = await fetchDraft(draftId.value)
+    Object.assign(form, {
+      type: draft.type || 'lost', title: draft.title || '', category: draft.category || '随身物品',
+      date: draft.eventDate || '', location: draft.location || '', description: draft.description || '',
+      hiddenFeature: draft.hiddenFeature || '',
+    })
+    selectedImages.value = (draft.images || []).map((image) => ({ file: null, preview: image.url, key: image.key, url: image.url }))
+    showToast('草稿已恢复，可以继续编辑')
+  } catch (error) {
+    showToast(error.message || '草稿加载失败')
+  }
+})
+
+async function ensureImagesUploaded(progressPrefix) {
+  const uploaded = []
+  for (let index = 0; index < selectedImages.value.length; index += 1) {
+    const image = selectedImages.value[index]
+    if (image.key && image.url) {
+      uploaded.push({ key: image.key, url: image.url })
+      continue
+    }
+    uploadProgress.value = `${progressPrefix} ${index + 1} / ${selectedImages.value.length}`
+    const result = await uploadImage(image.file)
+    selectedImages.value[index] = { file: null, preview: result.url, key: result.key, url: result.url }
+    uploaded.push({ key: result.key, url: result.url })
+  }
+  return uploaded
+}
+
+function draftPayload(images) {
+  return {
+    type: form.type, title: form.title || null, category: form.category || null,
+    eventDate: form.date || null, location: form.location || null,
+    description: form.description || null, hiddenFeature: form.hiddenFeature || null, images,
+  }
+}
+
+async function saveDraft() {
+  if (savingDraft.value) return
+  savingDraft.value = true
+  try {
+    const images = await ensureImagesUploaded('正在保存草稿图片')
+    uploadProgress.value = '正在写入数据库…'
+    const saved = draftId.value
+      ? await updateDraft(draftId.value, draftPayload(images))
+      : await createDraft(draftPayload(images))
+    draftId.value = saved.id
+    await router.replace({ path: '/publish', query: { draftId: saved.id } })
+    showToast('草稿已保存到后端数据库')
+  } catch (error) {
+    showToast(error.message || '草稿保存失败，请稍后重试')
+  } finally {
+    savingDraft.value = false
+    uploadProgress.value = ''
+  }
+}
+
 async function submit() {
   if (!form.title || !form.date || !form.location || !form.description) {
     showToast('请先补全带星号的必填信息')
@@ -50,11 +112,7 @@ async function submit() {
   }
   submitted.value = true
   try {
-    const uploadedImages = []
-    for (let index = 0; index < selectedImages.value.length; index += 1) {
-      uploadProgress.value = `正在上传图片 ${index + 1} / ${selectedImages.value.length}`
-      uploadedImages.push(await uploadImage(selectedImages.value[index].file))
-    }
+    const uploadedImages = await ensureImagesUploaded('正在上传图片')
     uploadProgress.value = '正在发布信息…'
     const created = await createItem({
       type: form.type,
@@ -66,6 +124,7 @@ async function submit() {
       hiddenFeature: form.hiddenFeature,
       images: uploadedImages.map((image) => ({ key: image.key, url: image.url })),
     })
+    if (draftId.value) await deleteDraft(draftId.value)
     showToast('发布成功，信息已进入寻物大厅')
     router.push(`/items/${created.id}`)
   } catch (exception) {
@@ -120,7 +179,7 @@ async function submit() {
           <div class="privacy-note route-privacy-note"><ShieldCheck :size="19" /><p><b>隐私保护</b><br />联系方式默认隐藏；认领证明、隐藏特征只对相关双方和授权管理员可见。</p></div>
         </section>
 
-        <div class="publish-route-actions"><button type="button" class="draft-button" @click="showToast('草稿已暂存在当前设备')">保存草稿</button><button class="submit-publish" :disabled="submitted"><Check v-if="submitted" :size="18" /><PenLine v-else :size="18" />{{ uploadProgress || (submitted ? '正在保存…' : '保存并预览') }}</button></div>
+        <div class="publish-route-actions"><button type="button" class="draft-button" :disabled="savingDraft || submitted" @click="saveDraft">{{ savingDraft ? (uploadProgress || '正在保存…') : (draftId ? '更新草稿' : '保存草稿') }}</button><button class="submit-publish" :disabled="submitted || savingDraft"><Check v-if="submitted" :size="18" /><PenLine v-else :size="18" />{{ submitted ? (uploadProgress || '正在保存…') : '保存并预览' }}</button></div>
       </form>
     </section>
   </div>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shiguang.lostfound.item.DraftMapper">
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO item_drafts (user_id, type, title, category, event_date, location, description, hidden_feature, images_json, created_at, updated_at)
+        VALUES (#{userId}, #{type}, #{title}, #{category}, #{eventDate}, #{location}, #{description}, #{hiddenFeature}, #{imagesJson}, #{createdAt}, #{updatedAt})
+    </insert>
+    <update id="update">
+        UPDATE item_drafts SET type=#{type}, title=#{title}, category=#{category}, event_date=#{eventDate},
+        location=#{location}, description=#{description}, hidden_feature=#{hiddenFeature}, images_json=#{imagesJson}, updated_at=#{updatedAt}
+        WHERE id=#{id} AND user_id=#{userId}
+    </update>
+    <select id="findOwned" resultType="com.shiguang.lostfound.item.ItemDraft">
+        SELECT * FROM item_drafts WHERE id=#{id} AND user_id=#{userId}
+    </select>
+    <select id="findByUserId" resultType="com.shiguang.lostfound.item.ItemDraft">
+        SELECT * FROM item_drafts WHERE user_id=#{userId} ORDER BY updated_at DESC
+    </select>
+    <delete id="deleteOwned">DELETE FROM item_drafts WHERE id=#{id} AND user_id=#{userId}</delete>
+</mapper>
