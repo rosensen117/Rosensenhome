@@ -4,6 +4,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ItemCard from '../components/ItemCard.vue'
 import { categories, items, places } from '../data'
+import { fetchItems } from '../api/items'
+import { PackageSearch } from '@lucide/vue'
 
 const route = useRoute()
 const typeFilter = ref(route.query.type === 'lost' || route.query.type === 'found' ? route.query.type : 'all')
@@ -17,10 +19,34 @@ const placeMenuOpen = ref(false)
 const sortMenuOpen = ref(false)
 const currentPage = ref(1)
 const pageSize = 4
+const hallItems = ref(items)
+
+function placeGroupOf(location) {
+  return places.slice(1).find((place) => location?.includes(place.replace('区', ''))) || '其他地点'
+}
+
+function normalizeItem(item) {
+  const created = new Date(item.createdAt)
+  return {
+    ...item,
+    placeGroup: placeGroupOf(item.location),
+    time: Number.isNaN(created.getTime()) ? item.eventDate : created.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    eventTime: item.eventDate,
+    dateOrder: Number.isNaN(created.getTime()) ? 0 : created.getTime(),
+    icon: PackageSearch,
+    tone: item.type === 'lost' ? 'blue' : 'sage',
+    clues: 0,
+    views: 0,
+    verified: item.publisherVerified,
+    hot: false,
+    publisherMeta: item.publisherVerified ? '校园身份已核验' : '注册用户',
+    imageUrl: item.images?.[0]?.url || '',
+  }
+}
 
 const filteredItems = computed(() => {
   const query = keyword.value.trim().toLowerCase()
-  const result = items.filter((item) => {
+  const result = hallItems.value.filter((item) => {
     const typeMatch = typeFilter.value === 'all' || item.type === typeFilter.value
     const categoryMatch = categoryFilter.value === '全部' || item.category === categoryFilter.value
     const placeMatch = placeFilter.value === '全部地点' || item.placeGroup === placeFilter.value
@@ -69,7 +95,14 @@ function goToPage(page) {
   document.querySelector('.hall-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-onMounted(() => document.addEventListener('click', closeMenus))
+onMounted(async () => {
+  document.addEventListener('click', closeMenus)
+  try {
+    hallItems.value = (await fetchItems()).map(normalizeItem)
+  } catch {
+    // 后端未启动时保留演示数据，页面仍可浏览。
+  }
+})
 onBeforeUnmount(() => document.removeEventListener('click', closeMenus))
 </script>
 
@@ -88,9 +121,9 @@ onBeforeUnmount(() => document.removeEventListener('click', closeMenus))
         <aside class="filter-panel" :class="{ open: showFilters }">
           <div class="filter-title"><span><Filter :size="18" />筛选信息</span><button @click="resetFilters">重置</button></div>
           <div class="filter-group"><label>信息类型</label><div class="segmented vertical">
-            <button :class="{ active: typeFilter === 'all' }" @click="typeFilter = 'all'">全部信息 <span>{{ items.length }}</span></button>
-            <button :class="{ active: typeFilter === 'lost' }" @click="typeFilter = 'lost'">寻找失物 <span>{{ items.filter(i => i.type === 'lost').length }}</span></button>
-            <button :class="{ active: typeFilter === 'found' }" @click="typeFilter = 'found'">拾到物品 <span>{{ items.filter(i => i.type === 'found').length }}</span></button>
+            <button :class="{ active: typeFilter === 'all' }" @click="typeFilter = 'all'">全部信息 <span>{{ hallItems.length }}</span></button>
+            <button :class="{ active: typeFilter === 'lost' }" @click="typeFilter = 'lost'">寻找失物 <span>{{ hallItems.filter(i => i.type === 'lost').length }}</span></button>
+            <button :class="{ active: typeFilter === 'found' }" @click="typeFilter = 'found'">拾到物品 <span>{{ hallItems.filter(i => i.type === 'found').length }}</span></button>
           </div></div>
           <div class="filter-group"><label>物品分类</label><div class="choice-list"><button v-for="category in categories" :key="category" :class="{ active: categoryFilter === category }" @click="categoryFilter = category"><span>{{ category }}</span><Check v-if="categoryFilter === category" :size="15" /></button></div></div>
           <div class="filter-group">

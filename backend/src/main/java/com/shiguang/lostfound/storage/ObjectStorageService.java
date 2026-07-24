@@ -44,7 +44,10 @@ public class ObjectStorageService {
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "图片读取失败");
         } catch (S3Exception ex) {
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "对象存储暂时不可用，请确认 MinIO 已启动");
+            if (ex.statusCode() == 401 || ex.statusCode() == 403) {
+                throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Supabase对象存储密钥无效或已撤销，请更新S3 Access Key");
+            }
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "对象存储暂时不可用，请检查存储配置后重试");
         }
     }
 

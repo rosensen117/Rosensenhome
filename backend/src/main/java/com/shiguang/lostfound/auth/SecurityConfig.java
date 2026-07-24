@@ -40,6 +40,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/admin/login", "/api/files/public/**", "/actuator/health", "/h2-console/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/items/mine").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/items", "/api/items/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))

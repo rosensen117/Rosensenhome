@@ -1,11 +1,16 @@
 <script setup>
 import { Check } from '@lucide/vue'
+import { onMounted } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import SiteFooter from './components/SiteFooter.vue'
 import SiteHeader from './components/SiteHeader.vue'
-import { toast } from './state'
+import { isLoggedIn, loadFavorites, toast } from './state'
 
 const currentRoute = useRoute()
+
+onMounted(() => {
+  if (isLoggedIn.value) loadFavorites().catch(() => {})
+})
 </script>
 
 <template>

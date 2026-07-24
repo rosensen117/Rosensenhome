@@ -1,0 +1,10 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: lost-found-nginx
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8088:80"

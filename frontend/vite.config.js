@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { cloudflare } from '@cloudflare/vite-plugin'
 import { sites } from './build/sites-vite-plugin.js'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   server: {
     proxy: {
       '/api': {
@@ -15,6 +15,6 @@ export default defineConfig({
   plugins: [
     vue(),
     sites(),
-    cloudflare(),
+    ...(command === 'build' ? [cloudflare()] : []),
   ],
-})
+}))

@@ -1,6 +1,8 @@
 spring:
   application:
     name: lost-found-backend
+  config:
+    import: optional:file:.env[.properties],optional:file:backend/.env[.properties]
   datasource:
     url: jdbc:h2:file:./data/lostfound;MODE=MySQL;AUTO_SERVER=TRUE
     username: sa
@@ -30,7 +32,7 @@ app:
     account: ${ADMIN_ACCOUNT:admin}
     password: ${ADMIN_PASSWORD:Admin@123456}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,https://shiguang-campus-lost-found.ls1994609633.chatgpt.site}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,http://localhost:8088,http://127.0.0.1:8088,https://shiguang-campus-lost-found.ls1994609633.chatgpt.site}
   storage:
     endpoint: ${STORAGE_ENDPOINT:http://localhost:9100}
     region: ${STORAGE_REGION:us-east-1}

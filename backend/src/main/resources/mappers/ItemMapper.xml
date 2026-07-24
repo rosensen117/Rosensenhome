@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.shiguang.lostfound.item.ItemMapper">
+    <resultMap id="postMap" type="com.shiguang.lostfound.item.ItemPost">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="type" column="type"/>
+        <result property="title" column="title"/>
+        <result property="category" column="category"/>
+        <result property="eventDate" column="event_date"/>
+        <result property="location" column="location"/>
+        <result property="description" column="description"/>
+        <result property="hiddenFeature" column="hidden_feature"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="publisherName" column="publisher_name"/>
+        <result property="publisherVerified" column="publisher_verified"/>
+    </resultMap>
+
+    <resultMap id="imageMap" type="com.shiguang.lostfound.item.ItemImage">
+        <id property="id" column="id"/>
+        <result property="itemId" column="item_id"/>
+        <result property="objectKey" column="object_key"/>
+        <result property="url" column="url"/>
+        <result property="sortOrder" column="sort_order"/>
+    </resultMap>
+
+    <insert id="insertPost" parameterType="com.shiguang.lostfound.item.ItemPost" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO item_posts (user_id, type, title, category, event_date, location, description, hidden_feature, status, created_at)
+        VALUES (#{userId}, #{type}, #{title}, #{category}, #{eventDate}, #{location}, #{description}, #{hiddenFeature}, #{status}, #{createdAt})
+    </insert>
+
+    <insert id="insertImage" parameterType="com.shiguang.lostfound.item.ItemImage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO item_images (item_id, object_key, url, sort_order)
+        VALUES (#{itemId}, #{objectKey}, #{url}, #{sortOrder})
+    </insert>
+
+    <sql id="postSelect">
+        SELECT p.id, p.user_id, p.type, p.title, p.category, p.event_date, p.location,
+               p.description, p.hidden_feature, p.status, p.created_at,
+               u.name AS publisher_name, u.verified AS publisher_verified
+        FROM item_posts p
+        JOIN users u ON u.id = p.user_id
+    </sql>
+
+    <select id="findPostById" resultMap="postMap">
+        <include refid="postSelect"/> WHERE p.id = #{id} AND p.status = 'PUBLISHED'
+    </select>
+
+    <select id="findPublishedPosts" resultMap="postMap">
+        <include refid="postSelect"/> WHERE p.status = 'PUBLISHED' ORDER BY p.created_at DESC
+    </select>
+
+    <select id="findPostsByUserId" resultMap="postMap">
+        <include refid="postSelect"/> WHERE p.user_id = #{userId} ORDER BY p.created_at DESC
+    </select>
+
+    <select id="findFavoritePostsByUserId" resultMap="postMap">
+        <include refid="postSelect"/>
+        JOIN item_favorites f ON f.item_id = p.id
+        WHERE f.user_id = #{userId} AND p.status = 'PUBLISHED'
+        ORDER BY f.created_at DESC
+    </select>
+
+    <insert id="insertFavorite">
+        INSERT INTO item_favorites (user_id, item_id, created_at)
+        VALUES (#{userId}, #{itemId}, #{createdAt})
+    </insert>
+
+    <delete id="deleteFavorite">
+        DELETE FROM item_favorites WHERE user_id = #{userId} AND item_id = #{itemId}
+    </delete>
+
+    <select id="favoriteExists" resultType="boolean">
+        SELECT CASE WHEN COUNT(*) &gt; 0 THEN TRUE ELSE FALSE END
+        FROM item_favorites WHERE user_id = #{userId} AND item_id = #{itemId}
+    </select>
+
+    <select id="findImagesByItemId" resultMap="imageMap">
+        SELECT id, item_id, object_key, url, sort_order
+        FROM item_images WHERE item_id = #{itemId} ORDER BY sort_order
+    </select>
+</mapper>

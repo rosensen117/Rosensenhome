@@ -15,11 +15,11 @@ import {
   ShieldCheck,
   UserRound,
 } from '@lucide/vue'
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { logoutAccount } from '../api/auth'
-import { items } from '../data'
-import { clearAuthSession, currentUser, favorites, showToast } from '../state'
+import { fetchMyItems } from '../api/items'
+import { clearAuthSession, currentUser, loadFavorites, showToast } from '../state'
 
 const router = useRouter()
 const activeTab = ref('profile')
@@ -34,20 +34,63 @@ const profile = reactive({
   bio: '愿每一次举手之劳都有回音。',
 })
 
-const tabs = [
+const myPosts = ref([])
+const postsLoading = ref(true)
+const postsError = ref('')
+const favoriteItems = ref([])
+const favoritesLoading = ref(true)
+const favoritesError = ref('')
+const solvedPostCount = computed(() => myPosts.value.filter((item) => item.solved).length)
+const tabs = computed(() => [
   { id: 'profile', label: '基本资料', icon: UserRound },
-  { id: 'posts', label: '我的发布', icon: PackageSearch, count: 3 },
-  { id: 'favorites', label: '我的收藏', icon: Heart, count: 1 },
+  { id: 'posts', label: '我的发布', icon: PackageSearch, count: myPosts.value.length },
+  { id: 'favorites', label: '我的收藏', icon: Heart, count: favoriteItems.value.length },
   { id: 'security', label: '账号安全', icon: ShieldCheck },
-]
+])
 
-const myPosts = [
-  { ...items[1], statusText: '正在寻找', views: 126 },
-  { ...items[4], statusText: '等待认领', views: 84 },
-  { ...items[5], statusText: '已找回', views: 57, solved: true },
-]
+function formatPostTime(value) {
+  if (!value) return '刚刚发布'
+  return new Intl.DateTimeFormat('zh-CN', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+}
 
-const favoriteItems = computed(() => items.filter((item) => favorites.value.has(item.id)))
+function normalizePost(item) {
+  const solved = item.status === 'RESOLVED' || item.status === 'CLOSED'
+  return {
+    ...item,
+    imageUrl: item.images?.[0]?.url || '',
+    icon: PackageSearch,
+    tone: item.type === 'lost' ? 'blue' : 'sage',
+    time: formatPostTime(item.createdAt),
+    statusText: solved ? '已找回' : item.type === 'lost' ? '正在寻找' : '等待认领',
+    solved,
+  }
+}
+
+async function loadMyPosts() {
+  postsLoading.value = true
+  postsError.value = ''
+  try {
+    myPosts.value = (await fetchMyItems()).map(normalizePost)
+  } catch (error) {
+    postsError.value = error.message || '我的发布加载失败，请稍后重试'
+  } finally {
+    postsLoading.value = false
+  }
+}
+
+async function loadFavoriteItems() {
+  favoritesLoading.value = true
+  favoritesError.value = ''
+  try {
+    favoriteItems.value = (await loadFavorites()).map(normalizePost)
+  } catch (error) {
+    favoritesError.value = error.message || '收藏记录加载失败，请稍后重试'
+  } finally {
+    favoritesLoading.value = false
+  }
+}
+
+onMounted(() => Promise.all([loadMyPosts(), loadFavoriteItems()]))
 
 function saveProfile() {
   editing.value = false
@@ -79,8 +122,8 @@ async function logout() {
           </div>
         </div>
         <div class="profile-hero-stats">
-          <div><strong>03</strong><span>累计发布</span></div>
-          <div><strong>02</strong><span>成功找回</span></div>
+          <div><strong>{{ String(myPosts.length).padStart(2, '0') }}</strong><span>累计发布</span></div>
+          <div><strong>{{ String(solvedPostCount).padStart(2, '0') }}</strong><span>成功找回</span></div>
           <div><strong>96</strong><span>信用分</span></div>
         </div>
       </div>
@@ -141,26 +184,31 @@ async function logout() {
               <div><span>MY POSTS</span><h2>我的发布</h2><p>管理你发布的寻物与招领信息。</p></div>
               <RouterLink to="/publish">发布新信息</RouterLink>
             </header>
-            <div class="profile-record-list">
+            <div v-if="postsLoading" class="profile-empty profile-post-state"><PackageSearch :size="34" /><h3>正在加载发布记录</h3></div>
+            <div v-else-if="postsError" class="profile-empty profile-post-state"><PackageSearch :size="34" /><h3>{{ postsError }}</h3><button type="button" @click="loadMyPosts">重新加载</button></div>
+            <div v-else-if="myPosts.length" class="profile-record-list">
               <article v-for="item in myPosts" :key="item.id">
-                <div class="record-icon" :class="item.tone"><component :is="item.icon" :size="28" /></div>
-                <div class="record-copy"><span>{{ item.category }} · {{ item.time }}</span><h3>{{ item.title }}</h3><p>{{ item.location }} · {{ item.clues }} 条线索 · {{ item.views }} 次浏览</p></div>
+                <div class="record-icon" :class="item.tone"><img v-if="item.imageUrl" class="record-photo" :src="item.imageUrl" :alt="item.title" /><component v-else :is="item.icon" :size="28" /></div>
+                <div class="record-copy"><span>{{ item.category }} · {{ item.time }}</span><h3>{{ item.title }}</h3><p>{{ item.location }} · {{ item.type === 'lost' ? '寻物启事' : '招领启事' }}</p></div>
                 <b :class="{ solved: item.solved }">{{ item.statusText }}</b>
                 <RouterLink :to="`/items/${item.id}`">查看</RouterLink>
               </article>
             </div>
+            <div v-else class="profile-empty profile-post-state"><PackageSearch :size="34" /><h3>还没有发布信息</h3><p>发布后，你可以在这里查看和管理进度。</p><RouterLink to="/publish">去发布第一条信息</RouterLink></div>
           </section>
 
           <section v-else-if="activeTab === 'favorites'" key="favorites" class="profile-panel">
             <header class="profile-panel-head"><div><span>SAVED ITEMS</span><h2>我的收藏</h2><p>集中查看你关注的失物招领信息。</p></div></header>
-            <div v-if="favoriteItems.length" class="profile-record-list">
+            <div v-if="favoritesLoading" class="profile-empty profile-post-state"><Heart :size="34" /><h3>正在加载收藏记录</h3></div>
+            <div v-else-if="favoritesError" class="profile-empty profile-post-state"><Heart :size="34" /><h3>{{ favoritesError }}</h3><button type="button" @click="loadFavoriteItems">重新加载</button></div>
+            <div v-else-if="favoriteItems.length" class="profile-record-list">
               <article v-for="item in favoriteItems" :key="item.id">
-                <div class="record-icon" :class="item.tone"><component :is="item.icon" :size="28" /></div>
-                <div class="record-copy"><span>{{ item.category }} · {{ item.time }}</span><h3>{{ item.title }}</h3><p>{{ item.location }} · {{ item.clues }} 条线索</p></div>
+                <div class="record-icon" :class="item.tone"><img v-if="item.imageUrl" class="record-photo" :src="item.imageUrl" :alt="item.title" /><component v-else :is="item.icon" :size="28" /></div>
+                <div class="record-copy"><span>{{ item.category }} · {{ item.time }}</span><h3>{{ item.title }}</h3><p>{{ item.location }} · {{ item.type === 'lost' ? '寻物启事' : '招领启事' }}</p></div>
                 <b>关注中</b><RouterLink :to="`/items/${item.id}`">查看</RouterLink>
               </article>
             </div>
-            <div v-else class="profile-empty"><Heart :size="34" /><h3>还没有收藏信息</h3><RouterLink to="/hall">去寻物大厅看看</RouterLink></div>
+            <div v-else class="profile-empty profile-post-state"><Heart :size="34" /><h3>还没有收藏信息</h3><p>在寻物大厅点击心形按钮，收藏会保存在你的账号中。</p><RouterLink to="/hall">去寻物大厅看看</RouterLink></div>
           </section>
 
           <section v-else key="security" class="profile-panel">

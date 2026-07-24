@@ -1,0 +1,7 @@
+target
+data
+minio-data
+.env
+*.log
+.idea
+*.iml

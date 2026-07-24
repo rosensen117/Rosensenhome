@@ -1,15 +1,38 @@
 <script setup>
-import { ArrowLeft, CalendarDays, Eye, Flag, Heart, MapPin, MessageCircle, PackageCheck, Send, ShieldCheck, UserRound } from '@lucide/vue'
-import { computed, ref } from 'vue'
+import { ArrowLeft, CalendarDays, Eye, Flag, Heart, MapPin, MessageCircle, PackageCheck, PackageSearch, Send, ShieldCheck, UserRound } from '@lucide/vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import ItemCard from '../components/ItemCard.vue'
 import { items } from '../data'
 import { favorites, showToast, toggleFavorite } from '../state'
+import { fetchItem } from '../api/items'
 
 const route = useRoute()
-const item = computed(() => items.find((entry) => entry.id === Number(route.params.id)))
+const item = ref(items.find((entry) => entry.id === Number(route.params.id)) || null)
 const clue = ref('')
 const related = computed(() => item.value ? items.filter((entry) => entry.id !== item.value.id && entry.category === item.value.category).slice(0, 2) : [])
+
+onMounted(async () => {
+  try {
+    const result = await fetchItem(route.params.id)
+    const created = new Date(result.createdAt)
+    item.value = {
+      ...result,
+      time: Number.isNaN(created.getTime()) ? result.eventDate : created.toLocaleString('zh-CN'),
+      eventTime: result.eventDate,
+      icon: PackageSearch,
+      tone: result.type === 'lost' ? 'blue' : 'sage',
+      clues: 0,
+      views: 0,
+      verified: result.publisherVerified,
+      hot: false,
+      publisherMeta: result.publisherVerified ? '校园身份已核验' : '注册用户',
+      imageUrl: result.images?.[0]?.url || '',
+    }
+  } catch {
+    // 后端不可用时保留本地演示详情。
+  }
+})
 
 function sendClue() {
   if (!clue.value.trim()) return showToast('请先填写线索内容')
@@ -23,7 +46,7 @@ function sendClue() {
     <div class="section-wrap detail-breadcrumb"><RouterLink to="/hall"><ArrowLeft :size="15" />返回寻物大厅</RouterLink><span>/</span><span>{{ item.category }}</span><span>/</span><b>{{ item.title }}</b></div>
     <section class="section-wrap detail-layout">
       <div class="detail-main">
-        <div class="detail-visual" :class="`tone-${item.tone}`"><span class="item-type" :class="item.type">{{ item.type === 'lost' ? '正在寻找' : '等待认领' }}</span><component :is="item.icon" :size="150" :stroke-width="1.1" /><span v-if="item.hot" class="hot-stamp">急寻</span></div>
+        <div class="detail-visual" :class="`tone-${item.tone}`"><span class="item-type" :class="item.type">{{ item.type === 'lost' ? '正在寻找' : '等待认领' }}</span><img v-if="item.imageUrl" class="detail-photo" :src="item.imageUrl" :alt="item.title" /><component v-else :is="item.icon" :size="150" :stroke-width="1.1" /><span v-if="item.hot" class="hot-stamp">急寻</span></div>
         <article class="detail-copy-card">
           <div class="detail-title-row"><div><span class="detail-category">{{ item.category }}</span><h1>{{ item.title }}</h1></div><button class="detail-favorite" :class="{ active: favorites.has(item.id) }" @click="toggleFavorite(item.id)"><Heart :size="20" :fill="favorites.has(item.id) ? 'currentColor' : 'none'" />{{ favorites.has(item.id) ? '已收藏' : '收藏' }}</button></div>
           <div class="detail-stats"><span><Eye :size="15" />{{ item.views }} 次浏览</span><span><MessageCircle :size="15" />{{ item.clues }} 条线索</span><span><ShieldCheck :size="15" />信息已审核</span></div>

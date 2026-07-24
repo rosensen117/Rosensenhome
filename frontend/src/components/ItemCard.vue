@@ -10,7 +10,8 @@ defineProps({ item: { type: Object, required: true } })
   <article class="item-card route-item-card">
     <div class="item-visual" :class="`tone-${item.tone}`">
       <span class="item-type" :class="item.type">{{ item.type === 'lost' ? '正在寻找' : '等待认领' }}</span>
-      <component :is="item.icon" :size="74" :stroke-width="1.25" />
+      <img v-if="item.imageUrl" class="item-photo" :src="item.imageUrl" :alt="item.title" />
+      <component v-else :is="item.icon" :size="74" :stroke-width="1.25" />
       <span v-if="item.hot" class="hot-stamp">急寻</span>
       <button class="favorite" :class="{ active: favorites.has(item.id) }" :aria-label="favorites.has(item.id) ? '取消收藏' : '收藏'" @click="toggleFavorite(item.id)">
         <Heart :size="18" :fill="favorites.has(item.id) ? 'currentColor' : 'none'" />

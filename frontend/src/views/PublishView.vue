@@ -3,6 +3,7 @@ import { Check, ImagePlus, PackageCheck, PenLine, Search, ShieldCheck, X } from 
 import { onBeforeUnmount, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { uploadImage } from '../api/uploads'
+import { createItem } from '../api/items'
 import { categories } from '../data'
 import { showToast } from '../state'
 
@@ -54,9 +55,19 @@ async function submit() {
       uploadProgress.value = `正在上传图片 ${index + 1} / ${selectedImages.value.length}`
       uploadedImages.push(await uploadImage(selectedImages.value[index].file))
     }
-    console.info('已上传图片', uploadedImages)
-    showToast('信息已保存为草稿')
-    router.push({ path: '/hall', query: { type: form.type } })
+    uploadProgress.value = '正在发布信息…'
+    const created = await createItem({
+      type: form.type,
+      title: form.title,
+      category: form.category,
+      eventDate: form.date,
+      location: form.location,
+      description: form.description,
+      hiddenFeature: form.hiddenFeature,
+      images: uploadedImages.map((image) => ({ key: image.key, url: image.url })),
+    })
+    showToast('发布成功，信息已进入寻物大厅')
+    router.push(`/items/${created.id}`)
   } catch (exception) {
     showToast(exception.message)
     submitted.value = false
